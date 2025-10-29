@@ -1,0 +1,86 @@
+Bootstrap: debootstrap
+MirrorURL: http://archive.ubuntu.com/ubuntu/
+OSVersion: jammy
+Include: 
+
+%labels
+
+    APPLICATION_NAME Ubuntu LTS AOFlagger 
+    OS_VERSION 22.04 
+
+    SYSTEM_NAME ilifu
+    SYSTEM_SINGULARITY_VERSION 4.1.3
+    SYSTEM_URL http://www.ilifu.ac.za
+
+    AUTHOR_NAME Jeremy Smith
+    AUTHOR_EMAIL jeremy@idia.ac.za
+
+%environment
+
+    export LC_ALL=C
+    export SOFTWARE_PATH=/opt
+
+
+%post
+    ##############################################################################
+    # Setting up Environment  
+    # Create Installation Directories and export paths. This is needed as part of post.
+    # %environment scriptlet does not define these paths during %post only after.
+    mkdir -p /opt
+    export SOFTWARE_PATH=/opt
+
+    # Fix command prompt in Singularity 3.5.2
+    printf 'export PS1="\u@$SINGULARITY_NAME:\w$ "' > /.singularity.d/env/999-psvars.sh
+    ###############################################################################
+    
+    # Create Installation Directories and export paths. This is needed as part of post.
+    # %environment scriptlet does not define these paths during %post only after.
+
+    apt-get update -y
+    apt-get install -y software-properties-common wget vim apt-utils git build-essential bzip2 libpng-dev curl gcc gfortran
+    apt-get install software-properties-common
+    add-apt-repository universe
+    apt-add-repository multiverse
+    apt-add-repository restricted
+    apt-get update
+
+    apt-get update && apt-get install -y   \
+        cmake \
+        build-essential \
+        pkg-config \
+        casacore-data casacore-dev \
+        libblas-dev liblapack-dev \
+        python3 \
+        libboost-date-time-dev \
+        libboost-test-dev \
+        libcfitsio-dev \
+        libfftw3-dev \
+        libgsl-dev \
+        libgtkmm-3.0-dev \
+        liblua5.3-dev \
+        libpng-dev  \
+        libpython3-dev \
+        libxml2-dev \
+        libhdf5-dev \
+        libboost-all-dev \
+
+    # Install AOFlagger 
+    # apt-get install -y aoflagger aoflagger-dev libaoflagger0
+    cd /opt
+    git clone https://gitlab.com/aroffringa/aoflagger
+    cd aoflagger
+    mkdir build
+    cd build/
+    #cmake ../
+    cmake ../ -DCMAKE_PREFIX_PATH=/opt/cep/casacore/
+    make -j 8
+    make install
+
+%runscript
+if [ $# -eq 0 ]; then
+    echo "The following Python modules are installed in this image:"
+    python -m pip freeze
+    echo "Example usage: singularity.simg [command] [args] [options]"
+else
+        exec "$@"
+fi
